@@ -1,6 +1,5 @@
 var express = require('express');
 var Promise = require('promise');
-var routes = require('./http/routes');
 var ConfigServer = require('../config/server.js');
 var http = require('http');
 
@@ -11,9 +10,16 @@ var HTTPServer = new Object();
 HTTPServer.init = function() {
 	var expressApp = new express();
 	var httpServer = http.Server(expressApp);
+
 	return new Promise(function(resolv,reject) {
-		httpServer.listen(ConfigServer.port,function(){
-			routes.init(expressApp);
+		httpServer.listen(ConfigServer.port, function () {
+
+			//routes
+			expressApp.get('/', function (req, res) {
+				res.send('ready');
+			});
+
+			//we return http server ressource because WebsocketServer need it
 			resolv(httpServer);
 		});
 	});
