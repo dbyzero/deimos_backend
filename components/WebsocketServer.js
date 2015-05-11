@@ -26,7 +26,12 @@ WebsocketServer.init = function(httpServer) {
 		GameServer.onConnection(socket,username);
 		ChatServer.onConnection(socket,username);
 
+		//routes
 		socket.on('chat.message',	onChatMessage.bind(socket));
+		socket.on('game.test1',		onGameTest1.bind(socket));
+		socket.on('game.test2',		onGameTest2.bind(socket));
+		socket.on('game.test3',		onGameTest3.bind(socket));
+
 		socket.on('disconnect',	onDisconnection.bind(socket));
 	});
 }
@@ -44,9 +49,22 @@ var onDisconnection = function() {
 	ChatServer.onDisconnection.call(this,username);
 }
 
+//routes actions
 var onChatMessage = function(message) {
 	var username = socketIdToUsername[this.id.toString()];
 	ChatServer.onMessage.call(this,username,message);
+}
+
+var onGameTest1 = function() {
+	GameServer.showInstanceList();
+}
+
+var onGameTest2 = function() {
+	GameServer.startInstance();
+}
+
+var onGameTest3 = function() {
+	GameServer.stopInstance();
 }
 
 module.exports = WebsocketServer;
