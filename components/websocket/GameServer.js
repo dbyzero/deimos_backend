@@ -11,13 +11,9 @@ var sendMessage = null;
 var configServer = require('../../config/server');
 
 
-GameServer.init = function(callbackSendMessage) {
+GameServer.start = function(callbackSendMessage) {
 	sendMessage = callbackSendMessage;
-	console.log('Game Server '+'initialized'.green);
-}
-
-GameServer.stopInstance = function(instanceId) {
-
+	console.log('Game Server '+'started'.green);
 }
 
 GameServer.getInstanceStatus = function(instanceId) {

@@ -7,7 +7,7 @@ var http = require('http');
 
 var HTTPServer = new Object();
 
-HTTPServer.init = function() {
+HTTPServer.start = function() {
 	var expressApp = new express();
 	var httpServer = http.Server(expressApp);
 

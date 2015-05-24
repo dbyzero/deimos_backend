@@ -11,10 +11,10 @@ var WebsocketServer = new Object();
 var websocketConnection = null;
 
 
-WebsocketServer.init = function(httpServer) {
+WebsocketServer.start = function(httpServer) {
 	websocketConnection = socketio(httpServer);
-	ChatServer.init(sendMessage);
-	GameServer.init(sendMessage);
+	ChatServer.start(sendMessage);
+	GameServer.start(sendMessage);
 
 	//message routes
 	websocketConnection.on('connection', function (socket) {

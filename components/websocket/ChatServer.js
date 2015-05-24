@@ -4,9 +4,9 @@ var colors = require('colors');
 var ChatServer = new Object();
 var sendMessage = null;
 
-ChatServer.init = function(_callbackSendMessage) {
+ChatServer.start = function(_callbackSendMessage) {
 	sendMessage = _callbackSendMessage;
-	console.log('Chat Server '+'initialized'.green);
+	console.log('Chat Server '+'started'.green);
 }
 
 var messageCount = 0;

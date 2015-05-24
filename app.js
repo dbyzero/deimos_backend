@@ -4,12 +4,12 @@ var Promise = require('promise');
 var colors = require('colors');
 var ConfigServer = require('./config/server.js')
 
-HTTPServer.init()
+HTTPServer.start()
 	//we need httpServerResource to create gameServer
 	.then(
 		function (httpServer) {
 			console.log('HTTP Server '+'initialized'.green+' on port '+ConfigServer.port.yellow);
-			WebsocketServer.init(httpServer);
+			WebsocketServer.start(httpServer);
 			console.log('Websocket Server '+'initialized'.green);
 		}
 	)
