@@ -1,6 +1,6 @@
 var express = require('express');
 var Promise = require('promise');
-var ConfigServer = require('../config/server.js');
+var ConfigServer = require('../config.js');
 var http = require('http');
 
 //routes

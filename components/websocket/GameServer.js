@@ -3,32 +3,70 @@ var DockerManager = require('./game/DockerManager');
 
 var GameServer = new Object();
 var containers = [];
-var availablePorts = [40000,40002,40003,40004];
-var freePorts = [];
+var availablePorts = [40000,40001,40002,40003,40004];
+var usedPorts = [];
 var instanceByPorts = {};
 var sendMessage = null;
 
-var configServer = require('../../config/server');
+var configServer = require('../../config');
 
 
 GameServer.start = function(callbackSendMessage) {
 	sendMessage = callbackSendMessage;
+	this.updateInstanceList();
 	console.log('Game Server '+'started'.green);
 }
 
-GameServer.getInstanceStatus = function(instanceId) {
+GameServer.startInstance = function() {
+	if(availablePorts.length <= usedPorts.length) {
+		console.error('All port used')
+	} else {
+		var port = null;
+		for (var i = 0; i < availablePorts.length; i++) {
+			if(usedPorts.indexOf(availablePorts[i]) === -1) {
+				port = availablePorts[i];
+				break;
+			}
+		};
+		usedPorts.push(port);
+		DockerManager.startDocker(port)
+			.then(function(){
+				return GameServer.updateInstanceList();
+			})
+			.then(function(){
+				console.log('game started');
+				sendMessage(null,'game.serverList', containers);
+			})
+			.catch(function(err){
+				console.log('error:'+err);
+			});
+	}
+}
 
+GameServer.destroyInstance = function(serverName) {
+	return DockerManager.destroyDockerContainer(serverName)
+		.then(function(data){
+			return GameServer.updateInstanceList();
+		})
+		.then(function(containers){
+			sendMessage(null,'game.serverList', containers);
+		})
+		.catch(function(err){
+			console.log('error:'+err);
+		});
 }
 
 GameServer.updateInstanceList = function() {
 	return DockerManager.getActiveDockerContainer()
 		.then(function(data){
 			containers = {};
+			usedPorts = [];
 			var keys = Object.keys(data);
 			for (var i = 0; i < keys.length; i++) {
 				var container = data[keys[i]];
 				if(container.image === configServer.dockerImageName) {
 					containers[container.id] = container;
+					usedPorts.push(parseInt(container.port));
 				}
 			};
 			return containers;
@@ -38,46 +76,12 @@ GameServer.updateInstanceList = function() {
 		});
 }
 
-GameServer.showInstanceList = function() {
-	GameServer.updateInstanceList()
-		.then(function(containers){
-			console.log(containers);
-		})
-		.catch(function(err){
-			console.log('error:'+err);
-		});
-}
-
-GameServer.startInstance = function() {
-	if(availablePorts.length <= freePorts.length) {
-		console.error('All port used')
-	} else {
-		var port = null;
-		for (var i = 0; i < availablePorts.length; i++) {
-			if(freePorts.indexOf(availablePorts[i]) === -1) {
-				port = availablePorts[i];
-			}
-		};
-		freePorts.push(port);
-		DockerManager.startDocker(port)
-			.then(function(){
-				return GameServer.updateInstanceList();
-			})
-			.then(function(){
-				console.log('game started');
-			})
-			.catch(function(err){
-				console.log('error:'+err);
-			});
-	}
-}
-
-GameServer.stopInstance = function(instanceId) {
-	console.log('stop');
-}
+//callbacks
 
 GameServer.onConnection = function(socket,username) {
-	console.log([username.grey, ' join Game Server'].join(''));
+	//send channel infos
+	socket.emit('game.serverList', containers);
+	console.log([username.grey, ' connected to game server list'].join(''));
 }
 
 GameServer.onDisconnection = function(username) {

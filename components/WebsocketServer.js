@@ -1,5 +1,5 @@
 var Promise = require('promise');
-var ConfigServer = require('../config/server.js');
+var ConfigServer = require('../config.js');
 var socketio = require('socket.io');
 var ChatServer = require('./websocket/ChatServer');
 var GameServer = require('./websocket/GameServer');
@@ -27,17 +27,20 @@ WebsocketServer.start = function(httpServer) {
 		ChatServer.onConnection(socket,username);
 
 		//routes
-		socket.on('chat.message',	onChatMessage.bind(socket));
-		socket.on('game.test1',		onGameTest1.bind(socket));
-		socket.on('game.test2',		onGameTest2.bind(socket));
-		socket.on('game.test3',		onGameTest3.bind(socket));
+		socket.on('chat.message',			onChatMessage.bind(socket));
+		socket.on('game.test2',				onGameTest2.bind(socket));
+		socket.on('game.destroyServer',		onDestroyGameServer.bind(socket));
 
 		socket.on('disconnect',	onDisconnection.bind(socket));
 	});
 }
 
 var sendMessage = function(channel, key, mess) {
-	websocketConnection.to(channel).emit(key,mess);
+	if(channel === null) {
+		websocketConnection.emit(key,mess);
+	} else {
+		websocketConnection.to(channel).emit(key,mess);
+	}
 }
 
 var onDisconnection = function() {
@@ -55,16 +58,13 @@ var onChatMessage = function(message) {
 	ChatServer.onMessage.call(this,username,message);
 }
 
-var onGameTest1 = function() {
-	GameServer.showInstanceList();
-}
-
 var onGameTest2 = function() {
 	GameServer.startInstance();
 }
 
-var onGameTest3 = function() {
-	GameServer.stopInstance();
+var onDestroyGameServer = function(message) {
+	GameServer.destroyInstance(message.data.serverName);
+	console.log(message.data.serverName);
 }
 
 module.exports = WebsocketServer;

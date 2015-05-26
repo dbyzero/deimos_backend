@@ -2,7 +2,7 @@ var HTTPServer = require('./components/HTTPServer');
 var WebsocketServer = require('./components/WebsocketServer');
 var Promise = require('promise');
 var colors = require('colors');
-var ConfigServer = require('./config/server.js')
+var ConfigServer = require('./config.js')
 
 HTTPServer.start()
 	//we need httpServerResource to create gameServer
