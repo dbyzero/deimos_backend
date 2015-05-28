@@ -14,7 +14,8 @@ WORKDIR /root
 RUN mkdir .ssh
 RUN mv id_rsa .ssh
 RUN echo 'StrictHostKeyChecking=no ' >>  /etc/ssh/ssh_config
-RUN git clone git@jupiter.oopss.net:/home/git/repo/deimos_server
+RUN git clone https://dbyzero:iss4ever\$@github.com/dbyzero/deimos_server.git
+# RUN git clone git@jupiter.oopss.net:/home/git/repo/deimos_server
 WORKDIR deimos_server
 RUN npm install
 RUN npm install -g nodemon

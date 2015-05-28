@@ -17,7 +17,7 @@ GameServer.start = function(callbackSendMessage) {
 	console.log('Game Server '+'started'.green);
 }
 
-GameServer.startInstance = function() {
+GameServer.createInstance = function() {
 	if(availablePorts.length <= usedPorts.length) {
 		console.error('All port used')
 	} else {
@@ -29,7 +29,7 @@ GameServer.startInstance = function() {
 			}
 		};
 		usedPorts.push(port);
-		DockerManager.startDocker(port)
+		DockerManager.createDocker(port)
 			.then(function(){
 				return GameServer.updateInstanceList();
 			})
@@ -41,6 +41,32 @@ GameServer.startInstance = function() {
 				console.log('error:'+err);
 			});
 	}
+}
+
+GameServer.startInstance = function(serverName) {
+	return DockerManager.startDockerContainer(serverName)
+		.then(function(data){
+			return GameServer.updateInstanceList();
+		})
+		.then(function(containers){
+			sendMessage(null,'game.serverList', containers);
+		})
+		.catch(function(err){
+			console.log('error:'+err);
+		});
+}
+
+GameServer.stopInstance = function(serverName) {
+	return DockerManager.stopDockerContainer(serverName)
+		.then(function(data){
+			return GameServer.updateInstanceList();
+		})
+		.then(function(containers){
+			sendMessage(null,'game.serverList', containers);
+		})
+		.catch(function(err){
+			console.log('error:'+err);
+		});
 }
 
 GameServer.destroyInstance = function(serverName) {
@@ -66,7 +92,8 @@ GameServer.updateInstanceList = function() {
 				var container = data[keys[i]];
 				if(container.image === configServer.dockerImageName) {
 					containers[container.id] = container;
-					usedPorts.push(parseInt(container.port));
+					var nameSplitted = container.name.split('_');
+					usedPorts.push(parseInt(nameSplitted[nameSplitted.length - 1]));
 				}
 			};
 			return containers;

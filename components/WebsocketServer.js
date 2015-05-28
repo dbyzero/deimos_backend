@@ -28,7 +28,9 @@ WebsocketServer.start = function(httpServer) {
 
 		//routes
 		socket.on('chat.message',			onChatMessage.bind(socket));
-		socket.on('game.test2',				onGameTest2.bind(socket));
+		socket.on('game.test2',				onCreateGameServer.bind(socket));
+		socket.on('game.startServer',		onStartGameServer.bind(socket));
+		socket.on('game.stopServer',		onStopGameServer.bind(socket));
 		socket.on('game.destroyServer',		onDestroyGameServer.bind(socket));
 
 		socket.on('disconnect',	onDisconnection.bind(socket));
@@ -58,13 +60,20 @@ var onChatMessage = function(message) {
 	ChatServer.onMessage.call(this,username,message);
 }
 
-var onGameTest2 = function() {
-	GameServer.startInstance();
+var onCreateGameServer = function() {
+	GameServer.createInstance();
 }
 
 var onDestroyGameServer = function(message) {
 	GameServer.destroyInstance(message.data.serverName);
-	console.log(message.data.serverName);
+}
+
+var onStartGameServer = function(message) {
+	GameServer.startInstance(message.data.serverName);
+}
+
+var onStopGameServer = function(message) {
+	GameServer.stopInstance(message.data.serverName);
 }
 
 module.exports = WebsocketServer;
