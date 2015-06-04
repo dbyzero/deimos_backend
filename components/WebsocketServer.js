@@ -4,6 +4,7 @@ var socketio = require('socket.io');
 var ChatServer = require('./websocket/ChatServer');
 var GameServer = require('./websocket/GameServer');
 var Generator = require('../tools/Generator');
+var restify = require('restify');
 
 var userList = [];
 var socketIdToUsername = {};
@@ -27,6 +28,8 @@ WebsocketServer.start = function(httpServer) {
 		ChatServer.onConnection(socket,username);
 
 		//routes
+		socket.on('login',					onLogin.bind(socket));
+		socket.on('loggout',				onLoggout.bind(socket));
 		socket.on('chat.message',			onChatMessage.bind(socket));
 		socket.on('game.test2',				onCreateGameServer.bind(socket));
 		socket.on('game.startServer',		onStartGameServer.bind(socket));
@@ -55,6 +58,56 @@ var onDisconnection = function() {
 }
 
 //routes actions
+var onLogin = function(_data) {
+
+	var clientSocket = this;
+	var login = _data.data.login;
+	var password = _data.data.password;
+
+
+	//Login
+	sendCredentials(login,password)
+		.then(function(data){
+			onLoginSuccess.call(clientSocket,login,data.sessionid);
+		})
+		//If fail try a logout then login again
+		.catch(function(data){
+			if(data.body.error === 'already_used') {
+				console.log('Already connected to session '+data.body.sessionid);
+				cleanSession(data.body.sessionid)
+					.then(function(){
+						console.log('Session '+data.body.sessionid+' removed');
+						return sendCredentials(login,password)
+					})
+					.then(function(data){
+						onLoginSuccess.call(clientSocket,login,data.sessionid);
+					})
+					.catch(function(data){
+						clientSocket.emit('serverError',{'message':'cannot_connect'});
+					})
+			} else {
+				clientSocket.emit('severError',{'message':'cannot_connect'});
+			}
+		})
+};
+
+var onLoginSuccess = function(login,sessionid) {
+	console.log(login + ' loggued with session ' + sessionid);
+	this.emit('loggued',{'login':login,'sessionid':sessionid});
+};
+
+//routes actions
+var onLoggout = function(sessionid) {
+	cleanSession(sessionid)
+		.then(function(){
+			console.log('Session '+sessionid+' removed');
+		})
+		.catch(function(data){
+			console.log('Error '+data);
+			clientSocket.emit('serverError',{'message':'cannot_clean_session'});
+		});
+}
+
 var onChatMessage = function(message) {
 	var username = socketIdToUsername[this.id.toString()];
 	ChatServer.onMessage.call(this,username,message);
@@ -74,6 +127,38 @@ var onStartGameServer = function(message) {
 
 var onStopGameServer = function(message) {
 	GameServer.stopInstance(message.data.serverName);
+}
+
+var sendCredentials = function(login, password) {
+	return new Promise(function(resolv,reject) {
+		restify.createJsonClient({
+			url: 'http://127.0.0.1:39999',
+			agent:false,
+			headers:{
+			}
+		}).post(encodeURI('/account/register/'+login+'/'+password), function(err, req, res, data) {
+			if(err !== null) {
+				reject(err);
+			}
+			resolv(data);
+		});
+	});
+}
+
+var cleanSession = function(sessionid) {
+	return new Promise(function(resolv,reject) {
+		restify.createJsonClient({
+			url: 'http://127.0.0.1:39999',
+			agent:false,
+			headers:{
+			}
+		}).del(encodeURI('/session/unregister/'+sessionid), function(err, req, res, data) {
+			if(err !== null) {
+				reject(err);
+			}
+			resolv(data);
+		});
+	});
 }
 
 module.exports = WebsocketServer;
