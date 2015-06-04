@@ -132,7 +132,7 @@ var onStopGameServer = function(message) {
 var sendCredentials = function(login, password) {
 	return new Promise(function(resolv,reject) {
 		restify.createJsonClient({
-			url: 'http://127.0.0.1:39999',
+			url: ConfigServer.apiURL,
 			agent:false,
 			headers:{
 			}
@@ -148,7 +148,7 @@ var sendCredentials = function(login, password) {
 var cleanSession = function(sessionid) {
 	return new Promise(function(resolv,reject) {
 		restify.createJsonClient({
-			url: 'http://127.0.0.1:39999',
+			url: ConfigServer.apiURL,
 			agent:false,
 			headers:{
 			}
