@@ -41,7 +41,6 @@ ChatServer.onLogin = function(socket,username) {
 }
 
 ChatServer.onLeave = function(username) {
-	console.log(username);
 	var channel = usernameToChannel[username];
 	var idx = channelUserList[channel].indexOf(username);
 	channelUserList[channel].splice(idx,1);

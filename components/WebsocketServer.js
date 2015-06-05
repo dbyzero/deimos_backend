@@ -41,8 +41,10 @@ var onDisconnection = function() {
 	console.log('Client '+this.handshake.address.yellow+' ('+this.id.toString().grey+')'+' disconnect'.red);
 	delete socketIdToUsername[this.id.toString()];
 
-	GameServer.onLeave.call(this,username);
-	ChatServer.onLeave.call(this,username);
+	if(username !== undefined) {
+		GameServer.onLeave.call(this,username);
+		ChatServer.onLeave.call(this,username);
+	}
 }
 
 var onLogin = function(_data) {
