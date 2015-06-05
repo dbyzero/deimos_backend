@@ -3,7 +3,6 @@ var ConfigServer = require('../config.js');
 var socketio = require('socket.io');
 var ChatServer = require('./websocket/ChatServer');
 var GameServer = require('./websocket/GameServer');
-var Generator = require('../tools/Generator');
 var restify = require('restify');
 
 var userList = [];
@@ -20,26 +19,15 @@ WebsocketServer.start = function(httpServer) {
 	//message routes
 	websocketConnection.on('connection', function (socket) {
 
-		var username = Generator.generateName();
-		console.log(['Client ', socket.handshake.address.yellow, ' ('+username.grey+' - '+socket.id.toString().grey, ')', ' connected'.green].join(''));
-		socketIdToUsername[socket.id] = username;
-
-		GameServer.onConnection(socket,username);
-		ChatServer.onConnection(socket,username);
+		console.log(['Client ', socket.handshake.address.yellow, ' ('+socket.id.toString().grey, ')', ' connected'.green].join(''));
 
 		//routes
 		socket.on('login',					onLogin.bind(socket));
-		socket.on('loggout',				onLoggout.bind(socket));
-		socket.on('chat.message',			onChatMessage.bind(socket));
-		socket.on('game.test2',				onCreateGameServer.bind(socket));
-		socket.on('game.startServer',		onStartGameServer.bind(socket));
-		socket.on('game.stopServer',		onStopGameServer.bind(socket));
-		socket.on('game.destroyServer',		onDestroyGameServer.bind(socket));
-
-		socket.on('disconnect',	onDisconnection.bind(socket));
+		socket.on('disconnect',				onDisconnection.bind(socket));
 	});
 }
 
+//routes actions
 var sendMessage = function(channel, key, mess) {
 	if(channel === null) {
 		websocketConnection.emit(key,mess);
@@ -53,11 +41,10 @@ var onDisconnection = function() {
 	console.log('Client '+this.handshake.address.yellow+' ('+this.id.toString().grey+')'+' disconnect'.red);
 	delete socketIdToUsername[this.id.toString()];
 
-	GameServer.onDisconnection.call(this,username);
-	ChatServer.onDisconnection.call(this,username);
+	GameServer.onLeave.call(this,username);
+	ChatServer.onLeave.call(this,username);
 }
 
-//routes actions
 var onLogin = function(_data) {
 
 	var clientSocket = this;
@@ -93,10 +80,21 @@ var onLogin = function(_data) {
 
 var onLoginSuccess = function(login,sessionid) {
 	console.log(login + ' loggued with session ' + sessionid);
+
+	socketIdToUsername[this.id] = login;
+
+	GameServer.onLogin(this,login);
+	ChatServer.onLogin(this,login);
+
+	this.on('chat.message',			onChatMessage.bind(this));
+	this.on('game.test2',			onCreateGameServer.bind(this));
+	this.on('game.startServer',		onStartGameServer.bind(this));
+	this.on('game.stopServer',		onStopGameServer.bind(this));
+	this.on('game.destroyServer',	onDestroyGameServer.bind(this));
+	this.on('loggout',				onLoggout.bind(this));
 	this.emit('loggued',{'login':login,'sessionid':sessionid});
 };
 
-//routes actions
 var onLoggout = function(sessionid) {
 	cleanSession(sessionid)
 		.then(function(){
@@ -106,6 +104,9 @@ var onLoggout = function(sessionid) {
 			console.log('Error '+data);
 			clientSocket.emit('serverError',{'message':'cannot_clean_session'});
 		});
+
+	GameServer.onLeave.call(this,socketIdToUsername[this.id]);
+	ChatServer.onLeave.call(this,socketIdToUsername[this.id]);
 }
 
 var onChatMessage = function(message) {

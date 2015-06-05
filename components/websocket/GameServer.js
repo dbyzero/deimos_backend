@@ -34,7 +34,7 @@ GameServer.createInstance = function() {
 				return GameServer.updateInstanceList();
 			})
 			.then(function(){
-				console.log('game started');
+				console.log('Game server started');
 				sendMessage(null,'game.serverList', containers);
 			})
 			.catch(function(err){
@@ -105,14 +105,14 @@ GameServer.updateInstanceList = function() {
 
 //callbacks
 
-GameServer.onConnection = function(socket,username) {
+GameServer.onLogin = function(socket,username) {
 	//send channel infos
 	socket.emit('game.serverList', containers);
 	console.log([username.grey, ' connected to game server list'].join(''));
 }
 
-GameServer.onDisconnection = function(username) {
-	console.log(username.grey + ' disconnect from Game Server');
+GameServer.onLeave = function(username) {
+	//stub
 }
 
 module.exports = GameServer;

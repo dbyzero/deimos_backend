@@ -13,7 +13,7 @@ var messageCount = 0;
 var channelUserList = {};
 var usernameToChannel = {};
 
-ChatServer.onConnection = function(socket,username) {
+ChatServer.onLogin = function(socket,username) {
 	//calculing canal depending referer
 	var channel = getChanalFromSocket(socket);
 
@@ -40,7 +40,8 @@ ChatServer.onConnection = function(socket,username) {
 	console.log([username.grey, ' join channel "', channel.cyan, '"'].join(''));
 }
 
-ChatServer.onDisconnection = function(username) {
+ChatServer.onLeave = function(username) {
+	console.log(username);
 	var channel = usernameToChannel[username];
 	var idx = channelUserList[channel].indexOf(username);
 	channelUserList[channel].splice(idx,1);
