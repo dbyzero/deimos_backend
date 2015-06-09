@@ -7,6 +7,10 @@ COPY ./id_rsa /root/id_rsa
 #Install packages needed
 RUN apt-get update
 RUN apt-get install -y nodejs npm git openssh-client vim
+RUN apt-get install -y npm
+RUN apt-get install -y git
+RUN apt-get install -y openssh-client
+RUN apt-get install -y vim
 RUN ln -s /usr/bin/nodejs /bin/node
 
 #Get and prepare server code

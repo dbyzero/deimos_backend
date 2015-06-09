@@ -6,7 +6,18 @@ COPY ./id_rsa /root/id_rsa
 
 #Install packages needed
 RUN apt-get update
-RUN apt-get install -y nodejs npm git openssh-client vim pkg-config libcairo2-dev libjpeg62-turbo-dev libpango1.0-dev libgif-dev build-essential g++
+RUN apt-get install -y nodejs 
+RUN apt-get install -y npm 
+RUN apt-get install -y git 
+RUN apt-get install -y openssh-client 
+RUN apt-get install -y vim 
+RUN apt-get install -y pkg-config 
+RUN apt-get install -y libcairo2-dev 
+RUN apt-get install -y libjpeg62-turbo-dev 
+RUN apt-get install -y libpango1.0-dev 
+RUN apt-get install -y libgif-dev 
+RUN apt-get install -y build-essential
+RUN apt-get install -y g++
 RUN ln -s /usr/bin/nodejs /bin/node
 
 #Get and prepare server code
