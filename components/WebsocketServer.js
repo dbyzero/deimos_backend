@@ -88,16 +88,17 @@ var onLoginSuccess = function(login,sessionid) {
 	GameServer.onLogin(this,login);
 	ChatServer.onLogin(this,login);
 
+	this.on('loggout',				onLoggout.bind(this));
 	this.on('chat.message',			onChatMessage.bind(this));
 	this.on('game.test2',			onCreateGameServer.bind(this));
 	this.on('game.startServer',		onStartGameServer.bind(this));
 	this.on('game.stopServer',		onStopGameServer.bind(this));
 	this.on('game.destroyServer',	onDestroyGameServer.bind(this));
-	this.on('loggout',				onLoggout.bind(this));
 	this.emit('loggued',{'login':login,'sessionid':sessionid});
 };
 
 var onLoggout = function(sessionid) {
+
 	cleanSession(sessionid)
 		.then(function(){
 			console.log('Session '+sessionid+' removed');
@@ -107,8 +108,17 @@ var onLoggout = function(sessionid) {
 			clientSocket.emit('serverError',{'message':'cannot_clean_session'});
 		});
 
-	GameServer.onLeave.call(this,socketIdToUsername[this.id]);
-	ChatServer.onLeave.call(this,socketIdToUsername[this.id]);
+
+	var clientUsername = socketIdToUsername[this.id];
+	GameServer.onLeave.call(this,clientUsername);
+	ChatServer.onLeave.call(this,clientUsername);
+
+	this.removeAllListeners('loggout');
+	this.removeAllListeners('chat.message');
+	this.removeAllListeners('game.test2');
+	this.removeAllListeners('game.startServer');
+	this.removeAllListeners('game.stopServer');
+	this.removeAllListeners('game.destroyServer');
 }
 
 var onChatMessage = function(message) {
