@@ -7,11 +7,14 @@ var DockerManager = function() {
 
 }
 
-DockerManager.createDocker = function (port) {
-	return execCommand('docker run --name game_server_'+port+' -i -t -d -p '+port+':80 --link deimos_api:api '+configServer.dockerImageName,function(stdout,stderr){
-	// execCommand('docker run -i -t -d -p port:1337 dbyzero:deimos_server:alpha',function(stdout,stderr){
-		var containers = DockerManager.getActiveDockerContainer();
-	});
+DockerManager.createDocker = function (level, port) {
+	return execCommand(
+		'docker run --name '+level+'_'+port+' -i -t -d -p '+port+':80 --link deimos_api:api '+
+		configServer.dockerImageName+' nodemon -e js app.js --env=docker --level='+level,
+		function(stdout,stderr){
+			var containers = DockerManager.getActiveDockerContainer();
+		}
+	);
 }
 
 DockerManager.stopDocker = function (dockerContainerId) {

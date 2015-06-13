@@ -24,6 +24,7 @@ WebsocketServer.start = function(httpServer) {
 		//routes
 		socket.on('login',					onLogin.bind(socket));
 		socket.on('disconnect',				onDisconnection.bind(socket));
+		socket.on('error',					function(err){throw Error(err);});
 	});
 }
 
@@ -94,6 +95,7 @@ var onLoginSuccess = function(login,sessionid) {
 	this.on('game.startServer',		onStartGameServer.bind(this));
 	this.on('game.stopServer',		onStopGameServer.bind(this));
 	this.on('game.destroyServer',	onDestroyGameServer.bind(this));
+	this.on('game.initLevel',		onInitGameServer.bind(this));
 	this.emit('loggued',{'login':login,'sessionid':sessionid});
 };
 
@@ -119,6 +121,7 @@ var onLoggout = function(sessionid) {
 	this.removeAllListeners('game.startServer');
 	this.removeAllListeners('game.stopServer');
 	this.removeAllListeners('game.destroyServer');
+	this.removeAllListeners('game.initLevel');
 }
 
 var onChatMessage = function(message) {
@@ -126,8 +129,8 @@ var onChatMessage = function(message) {
 	ChatServer.onMessage.call(this,username,message);
 }
 
-var onCreateGameServer = function() {
-	GameServer.createInstance();
+var onCreateGameServer = function(level) {
+	GameServer.createInstance(level);
 }
 
 var onDestroyGameServer = function(message) {
@@ -140,6 +143,10 @@ var onStartGameServer = function(message) {
 
 var onStopGameServer = function(message) {
 	GameServer.stopInstance(message.data.serverName);
+}
+
+var onInitGameServer = function(message) {
+	GameServer.initLevel(message.config);
 }
 
 var sendCredentials = function(login, password) {

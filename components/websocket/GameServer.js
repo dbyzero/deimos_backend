@@ -1,5 +1,6 @@
 var Promise = require('promise');
 var DockerManager = require('./game/DockerManager');
+var LevelGenerator = require('./game/LevelGenerator');
 
 var GameServer = new Object();
 var containers = [];
@@ -17,7 +18,7 @@ GameServer.start = function(callbackSendMessage) {
 	console.log('Game Server '+'started'.green);
 }
 
-GameServer.createInstance = function() {
+GameServer.createInstance = function(level) {
 	if(availablePorts.length <= usedPorts.length) {
 		console.error('All port used')
 	} else {
@@ -29,7 +30,7 @@ GameServer.createInstance = function() {
 			}
 		};
 		usedPorts.push(port);
-		DockerManager.createDocker(port)
+		DockerManager.createDocker(level, port)
 			.then(function(){
 				return GameServer.updateInstanceList();
 			})
@@ -101,6 +102,20 @@ GameServer.updateInstanceList = function() {
 		.catch(function(err){
 			console.log('error:'+err);
 		});
+}
+
+GameServer.initLevel = function(config) {
+	LevelGenerator.factory(config)
+		.then(
+			function(result){
+				console.log(result);
+				console.log('Game initialized');
+			},
+			function(err){
+				console.log('Error on game initializion');
+				console.log(err);
+			}
+		);
 }
 
 //callbacks
