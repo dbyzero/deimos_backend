@@ -23,6 +23,7 @@ WebsocketServer.start = function(httpServer) {
 
 		//routes
 		socket.on('login',					onLogin.bind(socket));
+		socket.on('loginBySessionId',		onLoginBySessionId.bind(socket));
 		socket.on('disconnect',				onDisconnection.bind(socket));
 		socket.on('error',					function(err){throw Error(err);});
 	});
@@ -78,6 +79,21 @@ var onLogin = function(_data) {
 			} else {
 				clientSocket.emit('severError',{'message':'cannot_connect'});
 			}
+		})
+};
+
+var onLoginBySessionId = function(_data) {
+
+	var clientSocket = this;
+	var login = _data.data.login;
+	var sessionid = _data.data.sessionid;
+
+	checkSessionId(login,sessionid)
+		.then(function(data){
+			onLoginSuccess.call(clientSocket,login,sessionid);
+		})
+		.catch(function(data){
+			clientSocket.emit('sessionRevoked','Cannot valid session token id');
 		})
 };
 
@@ -164,6 +180,22 @@ var sendCredentials = function(login, password) {
 		});
 	});
 }
+var checkSessionId = function(login, sessionid) {
+	return new Promise(function(resolv,reject) {
+		restify.createJsonClient({
+			url: ConfigServer.apiURL,
+			agent:false,
+			headers:{
+			}
+		}).get(encodeURI('/session/check/'+login+'/'+sessionid), function(err, req, res, data) {
+			if(err !== null) {
+				console.log(err);
+				reject(err);
+			}
+			resolv(data);
+		});
+	});
+}
 
 var cleanSession = function(sessionid) {
 	return new Promise(function(resolv,reject) {
@@ -174,6 +206,7 @@ var cleanSession = function(sessionid) {
 			}
 		}).del(encodeURI('/session/unregister/'+sessionid), function(err, req, res, data) {
 			if(err !== null) {
+				console.log(err);
 				reject(err);
 			}
 			resolv(data);
