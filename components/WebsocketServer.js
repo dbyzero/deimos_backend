@@ -23,6 +23,7 @@ WebsocketServer.start = function(httpServer) {
 
 		//routes
 		socket.on('login',					onLogin.bind(socket));
+		socket.on('register',				onRegister.bind(socket));
 		socket.on('loginBySessionId',		onLoginBySessionId.bind(socket));
 		socket.on('disconnect',				onDisconnection.bind(socket));
 		socket.on('error',					function(err){throw Error(err);});
@@ -52,9 +53,9 @@ var onDisconnection = function() {
 var onLogin = function(_data) {
 
 	var clientSocket = this;
+	console.log(_data);
 	var login = _data.data.login;
 	var password = _data.data.password;
-
 
 	//Login
 	sendCredentials(login,password)
@@ -68,7 +69,8 @@ var onLogin = function(_data) {
 				cleanSession(data.body.sessionid)
 					.then(function(){
 						console.log('Session '+data.body.sessionid+' removed');
-						return sendCredentials(login,password)
+						//warning potential infinite loop
+						return sendCredentials(login,password);
 					})
 					.then(function(data){
 						onLoginSuccess.call(clientSocket,login,data.sessionid);
@@ -82,8 +84,26 @@ var onLogin = function(_data) {
 		})
 };
 
-var onLoginBySessionId = function(_data) {
+var onRegister = function(_data) {
+	var clientSocket = this;
+	var login = _data.data.login;
+	var password = _data.data.password;
+	var mail = _data.data.mail;
 
+	register(login,password,mail)
+		.then(function(data){
+			onLogin.call(clientSocket,_data);
+		})
+		.catch(function(err){
+			if(err.body.error === 'user_exist') {
+				clientSocket.emit('serverError',{'message':'userExist'});
+			} else {
+				clientSocket.emit('serverError',{'message':err});
+			}
+		})
+};
+
+var onLoginBySessionId = function(_data) {
 	var clientSocket = this;
 	var login = _data.data.login;
 	var sessionid = _data.data.sessionid;
@@ -112,7 +132,22 @@ var onLoginSuccess = function(login,sessionid) {
 	this.on('game.stopServer',		onStopGameServer.bind(this));
 	this.on('game.destroyServer',	onDestroyGameServer.bind(this));
 	this.on('game.initLevel',		onInitGameServer.bind(this));
-	this.emit('loggued',{'login':login,'sessionid':sessionid});
+
+	//we add chars to the answer
+	getCharactersAccount(login)
+		.then(function(characters){
+			this.emit('loggued',{
+				'login':login,
+				'sessionid':sessionid,
+				'characters':characters
+			});
+			
+		}.bind(this))
+		.catch(function(error){
+			console.log(error);
+			this.emit('serverError',{'message':'cannot_get_characters'});
+		}.bind(this));
+
 };
 
 var onLoggout = function(sessionid) {
@@ -180,6 +215,39 @@ var sendCredentials = function(login, password) {
 		});
 	});
 }
+
+var register = function(login, password, mail) {
+	return new Promise(function(resolv,reject) {
+		restify.createJsonClient({
+			url: ConfigServer.apiURL,
+			agent:false,
+			headers:{
+			}
+		}).post(encodeURI('/account/create/'+login+'/'+password+'/'+mail), function(err, req, res, data) {
+			if(err !== null) {
+				reject(err);
+			}
+			resolv(data);
+		});
+	});
+}
+
+var getCharactersAccount = function(account) {
+	return new Promise(function(resolv,reject) {
+		restify.createJsonClient({
+			url: ConfigServer.apiURL,
+			agent:false,
+			headers:{
+			}
+		}).get(encodeURI('/avatar/byowner/'+account), function(err, req, res, data) {
+			if(err !== null) {
+				reject(err);
+			}
+			resolv(data);
+		});
+	});
+}
+
 var checkSessionId = function(login, sessionid) {
 	return new Promise(function(resolv,reject) {
 		restify.createJsonClient({

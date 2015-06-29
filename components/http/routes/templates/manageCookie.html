@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<title>GET COOKIE</title>
+		<script>
+			var receiveMessage = function(event) {
+				switch(event.data.action) {
+					case "get" :
+						var value = localStorage.getItem(event.data.key);
+						event.source.postMessage({
+								'key':event.data.key,
+								'value':value
+							},
+							event.origin
+						);
+						break;
+					case "set" :
+						localStorage.setItem(event.data.key,event.data.value);
+						break;
+					case "clean" :
+						localStorage.setItem(event.data.key,null);
+						break;
+				}
+			}
+			window.addEventListener("message", receiveMessage, false);
+		</script>
+	</head>
+	<body>
+		GET
+	</body>
+</html>
