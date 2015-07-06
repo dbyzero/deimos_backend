@@ -268,13 +268,14 @@ var createCharacter = function(data) {
 			'will':data['will'],
 			'willRegen':data['willRegen'],
 			'damage':data['damage'],
-			'training':data['training'],
+			'skillBonus':data['skillBonus'],
 			'strengh':data['strengh'],
 			'endurance':data['endurance'],
 			'willpower':data['willpower'],
 			'focus':data['focus'],
-			'traning':data['traning']
+			'training':data['training']
 		}
+		console.log(characterData);
 		restify.createJsonClient({
 			url: ConfigServer.apiURL,
 			agent:false,
