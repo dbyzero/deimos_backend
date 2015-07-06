@@ -24,6 +24,7 @@ WebsocketServer.start = function(httpServer) {
 		//routes
 		socket.on('login',					onLogin.bind(socket));
 		socket.on('register',				onRegister.bind(socket));
+		socket.on('createCharacter',		onCreateCharacter.bind(socket));
 		socket.on('loginBySessionId',		onLoginBySessionId.bind(socket));
 		socket.on('disconnect',				onDisconnection.bind(socket));
 		socket.on('error',					function(err){throw Error(err);});
@@ -53,7 +54,6 @@ var onDisconnection = function() {
 var onLogin = function(_data) {
 
 	var clientSocket = this;
-	console.log(_data);
 	var login = _data.data.login;
 	var password = _data.data.password;
 
@@ -98,6 +98,31 @@ var onRegister = function(_data) {
 			if(err.body.error === 'user_exist') {
 				clientSocket.emit('serverError',{'message':'userExist'});
 			} else {
+				clientSocket.emit('serverError',{'message':err});
+			}
+		})
+};
+
+var onCreateCharacter = function(_data) {
+	var clientSocket = this;
+	var username = _data.data.username;
+
+	//check
+	if(socketIdToUsername[clientSocket.id] !== username) {
+		clientSocket.emit('serverError',{'message':new Error('Forbidden')});
+		return;
+	}
+
+	createCharacter(_data['data'])
+		.then(function(data){
+			onAvatarCreated.call(clientSocket,data);
+		})
+		.catch(function(err){
+			if(err.body.error === 'avatar_exist') {
+				console.log(err);
+				clientSocket.emit('serverError',{'message':'avatarExist'});
+			} else {
+				console.log(err);
 				clientSocket.emit('serverError',{'message':err});
 			}
 		})
@@ -148,6 +173,10 @@ var onLoginSuccess = function(login,sessionid) {
 			this.emit('serverError',{'message':'cannot_get_characters'});
 		}.bind(this));
 
+};
+
+var onAvatarCreated = function(data) {
+	this.emit('avatarCreated',{'avatar':data});
 };
 
 var onLoggout = function(sessionid) {
@@ -229,6 +258,39 @@ var register = function(login, password, mail) {
 			}
 			resolv(data);
 		});
+	});
+}
+
+var createCharacter = function(data) {
+	return new Promise(function(resolv,reject) {
+		var characterData = {
+			'hp':data['hp'],
+			'will':data['will'],
+			'willRegen':data['willRegen'],
+			'damage':data['damage'],
+			'training':data['training'],
+			'strengh':data['strengh'],
+			'endurance':data['endurance'],
+			'willpower':data['willpower'],
+			'focus':data['focus'],
+			'traning':data['traning']
+		}
+		restify.createJsonClient({
+			url: ConfigServer.apiURL,
+			agent:false,
+			headers:{
+			}
+		//we copy data to not send client unwanted data
+		}).post(
+			encodeURI('/avatar/create/'+data['username']+'/'+data['name'],characterData), 
+			function(err, req, res, _data) {
+				if(err !== null) {
+					reject(err);
+				}
+				characterData['id'] = _data['avatarid'];
+				characterData['name'] = data['name'];
+				resolv(characterData);
+			});
 	});
 }
 
