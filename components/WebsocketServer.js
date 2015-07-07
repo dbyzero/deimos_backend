@@ -275,7 +275,6 @@ var createCharacter = function(data) {
 			'focus':data['focus'],
 			'training':data['training']
 		}
-		console.log(characterData);
 		restify.createJsonClient({
 			url: ConfigServer.apiURL,
 			agent:false,
@@ -283,7 +282,8 @@ var createCharacter = function(data) {
 			}
 		//we copy data to not send client unwanted data
 		}).post(
-			encodeURI('/avatar/create/'+data['username']+'/'+data['name'],characterData), 
+			encodeURI('/avatar/create/'+data['username']+'/'+data['name']),
+			characterData, 
 			function(err, req, res, _data) {
 				if(err !== null) {
 					reject(err);
