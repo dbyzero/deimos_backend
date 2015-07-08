@@ -288,9 +288,9 @@ var createCharacter = function(data) {
 				if(err !== null) {
 					reject(err);
 				}
-				characterData['id'] = _data['avatarid'];
-				characterData['name'] = data['name'];
-				resolv(characterData);
+				delete _data._id;
+				delete _data.__v;
+				resolv(_data);
 			});
 	});
 }
