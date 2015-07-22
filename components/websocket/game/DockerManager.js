@@ -67,6 +67,8 @@ DockerManager.getActiveDockerContainer = function () {
 					'image':		match[2],
 					'isStarted':	isNaN(port) ? false : true,
 					'port':			isNaN(port) ? null : port,
+					'max':			null,
+					'players':		0,
 					'name':			match[4]
 				});
 			}

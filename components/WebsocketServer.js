@@ -210,7 +210,13 @@ var onChatMessage = function(message) {
 }
 
 var onCreateGameServer = function(level) {
-	GameServer.createInstance(level);
+	GameServer.createInstance(level)
+		.then(function(){
+			//TODO
+		})
+		.catch(function(err){
+			this.emit('serverError',{'message':'cannot_create_server'});
+		});
 }
 
 var onDestroyGameServer = function(message) {
@@ -273,7 +279,8 @@ var createCharacter = function(data) {
 			'endurance':data['endurance'],
 			'willpower':data['willpower'],
 			'focus':data['focus'],
-			'training':data['training']
+			'training':data['training'],
+			'color':data['color']
 		}
 		restify.createJsonClient({
 			url: ConfigServer.apiURL,
