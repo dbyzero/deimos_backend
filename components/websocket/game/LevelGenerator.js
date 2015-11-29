@@ -82,6 +82,7 @@ var buildingHomeLevel = function(avatarId) {
 			"vertexBR" : { "x" : 249, "y" : 359 }
 		}
 	];
+	level.areaDomID = 'container';
 
 	return new Promise(function(resolv,reject) {
 		restify.createJsonClient({
@@ -89,7 +90,8 @@ var buildingHomeLevel = function(avatarId) {
 			agent:false,
 			headers:{
 			}
-		}).post(encodeURI('/level/home_'+avatarId), level , function(err, req, res, data) {
+		//TODO : fix with gamearea
+	}).post(encodeURI('/gamearea/create/'+level.name), level , function(err, req, res, data) {
 			if(err !== null) {
 				reject(err);
 			}

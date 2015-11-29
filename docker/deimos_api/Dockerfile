@@ -17,9 +17,9 @@ RUN mkdir -p /etc/supervisor/conf.d
 WORKDIR /root
 RUN mkdir .ssh
 COPY ./id_rsa /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
 RUN echo 'StrictHostKeyChecking=no ' >>  /etc/ssh/ssh_config
-# RUN git clone git@jupiter.oopss.net:/home/git/repo/deimos_api
-RUN git clone https://dbyzero:iss4ever1\$@github.com/dbyzero/deimos_api.git
+RUN git clone git@github.com:dbyzero/deimos_api.git
 WORKDIR deimos_api
 RUN npm install
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -28,3 +28,5 @@ RUN npm install -g nodemon
 #Run server
 CMD ["/usr/bin/supervisord"]
 EXPOSE 80
+
+VOLUME /root/deimos_api

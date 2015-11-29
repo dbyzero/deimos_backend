@@ -6,7 +6,7 @@ var GameServer = require('./websocket/GameServer');
 var restify = require('restify');
 
 var userList = [];
-var socketIdToUsername = {};
+var socketIdToAccountName = {};
 var WebsocketServer = new Object();
 var websocketConnection = null;
 
@@ -41,9 +41,9 @@ var sendMessage = function(channel, key, mess) {
 }
 
 var onDisconnection = function() {
-	var username = socketIdToUsername[this.id.toString()];
+	var username = socketIdToAccountName[this.id.toString()];
 	console.log('Client '+this.handshake.address.yellow+' ('+this.id.toString().grey+')'+' disconnect'.red);
-	delete socketIdToUsername[this.id.toString()];
+	delete socketIdToAccountName[this.id.toString()];
 
 	if(username !== undefined) {
 		GameServer.onLeave.call(this,username);
@@ -76,10 +76,11 @@ var onLogin = function(_data) {
 						onLoginSuccess.call(clientSocket,login,data.sessionid);
 					})
 					.catch(function(data){
-						clientSocket.emit('serverError',{'message':'cannot_connect'});
+						console.log(data);
+						clientSocket.emit('serverError',{'message':'cannot_connect #1'});
 					})
 			} else {
-				clientSocket.emit('severError',{'message':'cannot_connect'});
+				clientSocket.emit('severError',{'message':'cannot_connect #2'});
 			}
 		})
 };
@@ -105,10 +106,10 @@ var onRegister = function(_data) {
 
 var onCreateCharacter = function(_data) {
 	var clientSocket = this;
-	var username = _data.data.username;
+	var account_name = _data.data.account_name;
 
 	//check
-	if(socketIdToUsername[clientSocket.id] !== username) {
+	if(socketIdToAccountName[clientSocket.id] !== account_name) {
 		clientSocket.emit('serverError',{'message':new Error('Forbidden')});
 		return;
 	}
@@ -145,7 +146,7 @@ var onLoginBySessionId = function(_data) {
 var onLoginSuccess = function(login,sessionid) {
 	console.log(login + ' loggued with session ' + sessionid);
 
-	socketIdToUsername[this.id] = login;
+	socketIdToAccountName[this.id] = login;
 
 	GameServer.onLogin(this,login);
 	ChatServer.onLogin(this,login);
@@ -166,7 +167,7 @@ var onLoginSuccess = function(login,sessionid) {
 				'sessionid':sessionid,
 				'characters':characters
 			});
-			
+
 		}.bind(this))
 		.catch(function(error){
 			console.log(error);
@@ -191,7 +192,7 @@ var onLoggout = function(sessionid) {
 		});
 
 
-	var clientUsername = socketIdToUsername[this.id];
+	var clientUsername = socketIdToAccountName[this.id];
 	GameServer.onLeave.call(this,clientUsername);
 	ChatServer.onLeave.call(this,clientUsername);
 
@@ -205,7 +206,7 @@ var onLoggout = function(sessionid) {
 }
 
 var onChatMessage = function(message) {
-	var username = socketIdToUsername[this.id.toString()];
+	var username = socketIdToAccountName[this.id.toString()];
 	ChatServer.onMessage.call(this,username,message);
 }
 
@@ -268,20 +269,8 @@ var register = function(login, password, mail) {
 }
 
 var createCharacter = function(data) {
+	console.log(data);
 	return new Promise(function(resolv,reject) {
-		var characterData = {
-			'hp':data['hp'],
-			'will':data['will'],
-			'willRegen':data['willRegen'],
-			'damage':data['damage'],
-			'skillBonus':data['skillBonus'],
-			'strengh':data['strengh'],
-			'endurance':data['endurance'],
-			'willpower':data['willpower'],
-			'focus':data['focus'],
-			'training':data['training'],
-			'color':data['color']
-		}
 		restify.createJsonClient({
 			url: ConfigServer.apiURL,
 			agent:false,
@@ -289,8 +278,8 @@ var createCharacter = function(data) {
 			}
 		//we copy data to not send client unwanted data
 		}).post(
-			encodeURI('/avatar/create/'+data['username']+'/'+data['name']),
-			characterData, 
+			encodeURI('/avatar/create/'+data['account_name']+'/'+data['name']),
+			data,
 			function(err, req, res, _data) {
 				if(err !== null) {
 					reject(err);

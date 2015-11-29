@@ -1,1 +1,1 @@
-#!/bin/bashdocker build -t dbyzero/deimos_asset:alpha .
+docker build -t dbyzero/deimos_asset:alpha .
