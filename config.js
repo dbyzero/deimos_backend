@@ -1,7 +1,7 @@
 var ConfigServer = {
-	'port':'1080',
-	'dockerImageName':'dbyzero/deimos_server:alpha',
-	'apiURL':'http://puck.dbyzero.com:39999'
+	'port':'80',
+	'dockerImageName':'dbyzero/deimos_server',
+	'apiURL':'http://api'
 }
 
 module.exports = ConfigServer;
