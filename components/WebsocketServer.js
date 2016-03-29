@@ -269,7 +269,30 @@ var register = function(login, password, mail) {
 }
 
 var createCharacter = function(data) {
-	console.log(data);
+	//add unsettable by user datas
+	data['item_slot_chest'] = {
+		id:3,
+		color:'#777'
+	};
+	data['item_slot_left_hand'] =  {
+		id:1,
+		color:'#777'
+	};
+	data['item_slot_right_hand'] =  {
+		id:1,
+		color:'#777'
+	};
+	data['item_slot_foot'] =  {
+		id:2,
+		color:'#777'
+	};
+	data['item_slot_head'] = {};
+	data['item_slot_head2'] = {};
+	data['inventory'] = {};
+	data['mass'] = 1;
+	data['size'] = { x: 40, y: 60 };
+	data['deltashow'] = { x: 30, y: 30 };
+
 	return new Promise(function(resolv,reject) {
 		restify.createJsonClient({
 			url: ConfigServer.apiURL,
