@@ -4,6 +4,8 @@ var socketio = require('socket.io');
 var ChatServer = require('./websocket/ChatServer');
 var GameServer = require('./websocket/GameServer');
 var restify = require('restify');
+var Docker = require('dockerode');
+
 
 var userList = [];
 var socketIdToAccountName = {};
@@ -14,21 +16,25 @@ var websocketConnection = null;
 WebsocketServer.start = function(httpServer) {
 	websocketConnection = socketio(httpServer);
 	ChatServer.start(sendMessage);
-	GameServer.start(sendMessage);
+	GameServer.start(sendMessage)
+		.done(function(){
+			//message routes
+			websocketConnection.on('connection', function (socket) {
 
-	//message routes
-	websocketConnection.on('connection', function (socket) {
+				console.log(['Client ', socket.handshake.address.yellow, ' ('+socket.id.toString().grey, ')', ' connected'.green].join(''));
 
-		console.log(['Client ', socket.handshake.address.yellow, ' ('+socket.id.toString().grey, ')', ' connected'.green].join(''));
+				//routes
+				socket.on('login',					onLogin.bind(socket));
+				socket.on('register',				onRegister.bind(socket));
+				socket.on('createCharacter',		onCreateCharacter.bind(socket));
+				socket.on('loginBySessionId',		onLoginBySessionId.bind(socket));
+				socket.on('disconnect',				onDisconnection.bind(socket));
+				socket.on('error',					function(err){throw Error(err);});
+			});
+		},function(err){
+			throw err;
+		})
 
-		//routes
-		socket.on('login',					onLogin.bind(socket));
-		socket.on('register',				onRegister.bind(socket));
-		socket.on('createCharacter',		onCreateCharacter.bind(socket));
-		socket.on('loginBySessionId',		onLoginBySessionId.bind(socket));
-		socket.on('disconnect',				onDisconnection.bind(socket));
-		socket.on('error',					function(err){throw Error(err);});
-	});
 }
 
 //routes actions
@@ -59,11 +65,10 @@ var onLogin = function(_data) {
 
 	//Login
 	sendCredentials(login,password)
-		.then(function(data){
+		.done(function(data){
 			onLoginSuccess.call(clientSocket,login,data.sessionid);
-		})
 		//If fail try a logout then login again
-		.catch(function(data){
+		},function(data){
 			if(data.body.error === 'already_used') {
 				console.log('Already connected to session '+data.body.sessionid);
 				cleanSession(data.body.sessionid)
@@ -72,13 +77,12 @@ var onLogin = function(_data) {
 						//warning potential infinite loop
 						return sendCredentials(login,password);
 					})
-					.then(function(data){
+					.done(function(data){
 						onLoginSuccess.call(clientSocket,login,data.sessionid);
-					})
-					.catch(function(data){
+					},function(data){
 						console.log(data);
 						clientSocket.emit('serverError',{'message':'cannot_connect #1'});
-					})
+					});
 			} else {
 				clientSocket.emit('severError',{'message':'cannot_connect #2'});
 			}
@@ -92,10 +96,9 @@ var onRegister = function(_data) {
 	var mail = _data.data.mail;
 
 	register(login,password,mail)
-		.then(function(data){
+		.done(function(data){
 			onLogin.call(clientSocket,_data);
-		})
-		.catch(function(err){
+		},function(err){
 			if(err.body.error === 'user_exist') {
 				clientSocket.emit('serverError',{'message':'userExist'});
 			} else {
@@ -115,10 +118,9 @@ var onCreateCharacter = function(_data) {
 	}
 
 	createCharacter(_data['data'])
-		.then(function(data){
+		.done(function(data){
 			onAvatarCreated.call(clientSocket,data);
-		})
-		.catch(function(err){
+		},function(err){
 			if(err.body.error === 'avatar_exist') {
 				console.log(err);
 				clientSocket.emit('serverError',{'message':'avatarExist'});
@@ -135,10 +137,9 @@ var onLoginBySessionId = function(_data) {
 	var sessionid = _data.data.sessionid;
 
 	checkSessionId(login,sessionid)
-		.then(function(data){
+		.done(function(data){
 			onLoginSuccess.call(clientSocket,login,sessionid);
-		})
-		.catch(function(data){
+		},function(data){
 			clientSocket.emit('sessionRevoked','Cannot valid session token id');
 		})
 };
@@ -153,23 +154,19 @@ var onLoginSuccess = function(login,sessionid) {
 
 	this.on('loggout',				onLoggout.bind(this));
 	this.on('chat.message',			onChatMessage.bind(this));
-	this.on('game.test2',			onCreateGameServer.bind(this));
-	this.on('game.startServer',		onStartGameServer.bind(this));
-	this.on('game.stopServer',		onStopGameServer.bind(this));
-	this.on('game.destroyServer',	onDestroyGameServer.bind(this));
-	this.on('game.initLevel',		onInitGameServer.bind(this));
+	this.on('game.joinServer',		onJoinGameServer.bind(this));
+	this.on('game.leaveServer',		onLeaveGameServer.bind(this));
 
 	//we add chars to the answer
 	getCharactersAccount(login)
-		.then(function(characters){
+		.done(function(characters){
 			this.emit('loggued',{
 				'login':login,
 				'sessionid':sessionid,
 				'characters':characters
 			});
-
-		}.bind(this))
-		.catch(function(error){
+		}.bind(this),
+		function(error){
 			console.log(error);
 			this.emit('serverError',{'message':'cannot_get_characters'});
 		}.bind(this));
@@ -183,10 +180,9 @@ var onAvatarCreated = function(data) {
 var onLoggout = function(sessionid) {
 
 	cleanSession(sessionid)
-		.then(function(){
+		.done(function(){
 			console.log('Session '+sessionid+' removed');
-		})
-		.catch(function(data){
+		},function(data){
 			console.log('Error '+data);
 			clientSocket.emit('serverError',{'message':'cannot_clean_session'});
 		});
@@ -198,11 +194,8 @@ var onLoggout = function(sessionid) {
 
 	this.removeAllListeners('loggout');
 	this.removeAllListeners('chat.message');
-	this.removeAllListeners('game.test2');
-	this.removeAllListeners('game.startServer');
-	this.removeAllListeners('game.stopServer');
-	this.removeAllListeners('game.destroyServer');
-	this.removeAllListeners('game.initLevel');
+	this.removeAllListeners('game.joinServer');
+	this.removeAllListeners('game.leaveServer');
 }
 
 var onChatMessage = function(message) {
@@ -210,30 +203,18 @@ var onChatMessage = function(message) {
 	ChatServer.onMessage.call(this,username,message);
 }
 
-var onCreateGameServer = function(level) {
-	GameServer.createInstance(level)
-		.then(function(){
+var onJoinGameServer = function(message) {
+	GameServer.joinInstance(message.data.serverName)
+		.done(function(server){
 			//TODO
+			console.log(server);
+		},function(err){
+			throw err;
 		})
-		.catch(function(err){
-			this.emit('serverError',{'message':'cannot_create_server'});
-		});
 }
 
-var onDestroyGameServer = function(message) {
-	GameServer.destroyInstance(message.data.serverName);
-}
-
-var onStartGameServer = function(message) {
-	GameServer.startInstance(message.data.serverName);
-}
-
-var onStopGameServer = function(message) {
-	GameServer.stopInstance(message.data.serverName);
-}
-
-var onInitGameServer = function(message) {
-	GameServer.initLevel(message.config);
+var onLeaveGameServer = function(message) {
+	GameServer.leaveInstance(message.data.serverName);
 }
 
 var sendCredentials = function(login, password) {
@@ -272,19 +253,19 @@ var createCharacter = function(data) {
 	//add unsettable by user datas
 	data['item_slot_chest'] = {
 		id:3,
-		color:'#777'
+		color:'#3e3d3dff'
 	};
 	data['item_slot_left_hand'] =  {
-		id:1,
-		color:'#777'
+		id:4,
+		color:'#4e392fff'
 	};
 	data['item_slot_right_hand'] =  {
 		id:1,
-		color:'#777'
+		color:'#ffb22eff'
 	};
 	data['item_slot_foot'] =  {
 		id:2,
-		color:'#777'
+		color:'#832020ff'
 	};
 	data['item_slot_head'] = {};
 	data['item_slot_head2'] = {};
