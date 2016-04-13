@@ -19,11 +19,12 @@ GameServer.start = function(callbackSendMessage) {
 
 GameServer.updateInstanceList = function() {
 	return new Promise(function(resolv, reject){
-		docker.listContainers(function (err, containers) {
+		docker.listContainers(/*{'all':true},*/function (err, containers) {
 			if(err) {
 				reject(err);
 			} else {
 				var regex = new RegExp("^"+config.gameServerPrefix+"(.*)");
+				gameContainer = {};
 				containers.forEach(function (containerInfo) {
 					var res = regex.exec(containerInfo.Names[0]);
 					if(res) {
@@ -39,30 +40,58 @@ GameServer.updateInstanceList = function() {
 }
 
 GameServer.joinInstance = function(serverName) {
-	return new Promise(function(resolv, reject) {
-		if(!gameContainer[config.gameServerPrefix + serverName]) {
-			//get a new port
-			lastPortUsed++;
-			docker.createContainer({"Image": config.dockerImageName, "name": config.gameServerPrefix + serverName}, function (err, container) {
-				if(err){
-					console.log(err);
-					reject(err);
-				} else {
-					container.start({"PortBindings": { "80/tcp": [{"HostPort": lastPortUsed+""}] }}, function (err, data) {if(err) {
+	return GameServer.updateInstanceList()
+		.then(function(){
+			return new Promise(function(resolv, reject) {
+				if(!gameContainer[config.gameServerPrefix + serverName]) {
+					//get a new port
+					lastPortUsed++;
+					docker.createContainer({
+						"Image": config.dockerGameServerImageName,
+						"name": config.gameServerPrefix + serverName,
+						"Volumes": {"/root/deimos_server":{}},
+						"Env": [
+							"SERVER_NAME="+serverName
+						]
+					}, function (err, container) {
+						if(err){
 							console.log(err);
 							reject(err);
 						} else {
-							console.log("Create container " + serverName);
-							gameContainer[config.gameServerPrefix + serverName] = lastPortUsed+"";
-							resolv(lastPortUsed);
+							var configStart = {
+								"PortBindings": { "80/tcp": [{"HostPort": lastPortUsed+""}]},
+								"Binds":[config.deimosServerVolumePath+":/root/deimos_server"],
+								"Links":[config.dockerApiContainerName+":api"],
+								"NetworkMode": "deimos_default"
+							};
+							container.start(configStart, function (err, data) {
+								if(err) {
+									console.log(err);
+									reject(err);
+								} else {
+									console.log("Create container " + serverName);
+									gameContainer[config.gameServerPrefix + serverName] = lastPortUsed+"";
+									resolv({
+										'serverPort':lastPortUsed,
+										'serverName':serverName
+									});
+								}
+							});
 						}
+					});
+				} else {
+					var port = gameContainer[config.gameServerPrefix + serverName];
+					resolv({
+						'serverPort':port,
+						'serverName':serverName
 					});
 				}
 			});
-		} else {
-			resolv(gameContainer[config.gameServerPrefix + serverName]);
-		}
-	});
+			
+		})
+		.catch(function(err){
+			throw err;
+		})
 }
 
 GameServer.leaveInstance = function(serverName) {

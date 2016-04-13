@@ -204,10 +204,12 @@ var onChatMessage = function(message) {
 }
 
 var onJoinGameServer = function(message) {
+	var that = this;
 	GameServer.joinInstance(message.data.serverName)
-		.done(function(server){
+		.done(function(serverInfo){
 			//TODO
-			console.log(server);
+			that.emit('game.readyToJoinGame',{'message':serverInfo});
+			console.log(serverInfo);
 		},function(err){
 			throw err;
 		})
